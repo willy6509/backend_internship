@@ -12,7 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sentiment_analysis', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('crawled_post_id')->constrained('crawled_posts')->onDelete('cascade');
+            $table->enum('sentiment', ['positive', 'negative', 'neutral']);
+            $table->float('confidence_score'); // 0.0 sampai 1.0 (Seberapa yakin AI-nya)
+            $table->string('category'); // Kriminalitas, Laka Lantas, Pungli, dll
+            $table->json('keywords'); // Simpan keyword penting: ["macet", "demo"]
+            $table->enum('issue_status', ['open', 'investigating', 'resolved', 'ignored'])->default('open');
+            $table->foreignUuid('handled_by')->nullable()->constrained('users'); // Siapa petugas yang menangani
+            $table->text('police_notes')->nullable(); // Catatan petugas
             $table->timestamps();
         });
     }
