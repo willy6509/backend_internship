@@ -3,6 +3,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Observers\ActivityLogObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 
 class ActivityLog extends Model
 {

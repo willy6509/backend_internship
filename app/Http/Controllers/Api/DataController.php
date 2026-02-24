@@ -2,8 +2,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\CrawledDataLedger;
+use App\Models\CrawledData;
 use Illuminate\Http\Request;
+use App\Services\DuplicateCheckerService;
 
 class DataController extends Controller
 {
@@ -13,7 +14,7 @@ class DataController extends Controller
         $limit = $request->query('limit', 50);
         
         // Ambil data terbaru, hindari memuat raw_payload yang berat untuk list
-        $query = CrawledDataLedger::select('id', 'type', 'source', 'username', 'posted_at', 'content', 'url')
+        $query = CrawledData::select('id', 'type', 'source', 'username', 'posted_at', 'content', 'url')
                     ->orderBy('posted_at', 'desc');
 
         $data = $query->paginate($limit);
@@ -27,7 +28,7 @@ class DataController extends Controller
     // Mengambil detail laporan/post beserta komentarnya
     public function show($id)
     {
-        $data = CrawledDataLedger::where('id', $id)->first();
+        $data = CrawledData::where('id', $id)->first();
 
         if (!$data) {
             return response()->json([
@@ -39,7 +40,7 @@ class DataController extends Controller
         // Ambil balasan jika ini adalah post utama
         $replies = [];
         if ($data->type === 'post') {
-            $replies = CrawledDataLedger::where('parent_url', $data->url)
+            $replies = CrawledData::where('parent_url', $data->url)
                         ->select('id', 'username', 'posted_at', 'content', 'url')
                         ->orderBy('posted_at', 'asc')
                         ->get();
@@ -52,5 +53,50 @@ class DataController extends Controller
                 'replies' => $replies
             ]
         ], 200);
+    }
+
+    public function ingestData(Request $request)
+    {
+        // Validasi data yang dikirim oleh Python
+        $validated = $request->validate([
+            'type' => 'required|in:post,reply',
+            'username' => 'required|string',
+            'posted_at' => 'required',
+            'content' => 'required|string',
+            'url' => 'required|url',
+            'parent_url' => 'nullable|url',
+        ]);
+
+        $content = $request->input('content');
+
+        if (DuplicateCheckerService::isContentExist($content)) {
+            
+            // Langsung tolak dan suruh Python lanjut ke data berikutnya
+            return response()->json([
+                'status' => 'ignored',
+                'message' => 'Konten teks sudah ada di database, diabaikan.',
+                'url' => $request->input('url')
+            ], 200); 
+        }
+
+        // Simpan ke DB. Observer Blockchain akan OTOMATIS BERJALAN di sini!
+        $record = \App\Models\CrawledData::firstOrCreate(
+            ['url' => $validated['url']],
+            [
+                'type' => $validated['type'],
+                'source' => 'X',
+                'username' => $validated['username'],
+                'posted_at' => date('Y-m-d H:i:s', strtotime($validated['posted_at'])),
+                'content' => $validated['content'],
+                'parent_url' => $validated['parent_url'] ?? null,
+                'raw_payload' => $request->all() // Simpan seluruh JSON sebagai bukti
+            ]
+        );
+
+        if ($record->wasRecentlyCreated) {
+            return response()->json(['status' => 'inserted'], 201);
+        }
+
+        return response()->json(['status' => 'ignored_duplicate'], 200);
     }
 }

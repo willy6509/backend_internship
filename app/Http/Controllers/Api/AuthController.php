@@ -35,13 +35,13 @@ class AuthController extends Controller
         $token = $user->createToken('sentinel_auth_token')->plainTextToken;
 
         // Catat di Blockchain Log
-        ActivityLog::create([
-            'user_id' => $user->id,
-            'user_ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'event' => 'login',
-            'description' => 'User berhasil login ke sistem.',
-        ]);
+        // ActivityLog::create([
+        //     'user_id' => $user->id,
+        //     'user_ip' => $request->ip(),
+        //     'user_agent' => $request->userAgent(),
+        //     'event' => 'login',
+        //     'description' => 'User berhasil login ke sistem.',
+        // ]);
 
         // Mengirimkan token, frontend bisa menyimpannya di HTTP-Only cookie via Next.js API Routes
         return response()->json([

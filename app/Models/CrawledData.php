@@ -4,6 +4,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use App\Observers\CrawledDataObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 
 class CrawledData extends Model
 {

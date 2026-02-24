@@ -4,7 +4,11 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DataController;
 
 // --- Authentication ---
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+
+// Rute khusus untuk Crawler Python (Dilindungi Middleware API Key buatan sendiri)
+Route::post('/internal/ingest', [\App\Http\Controllers\Api\DataController::class, 'ingestData'])
+    ->middleware(\App\Http\Middleware\ApiKeyMiddleware::class);
 
 // --- Protected Routes ---
 Route::middleware('auth:sanctum')->group(function () {
