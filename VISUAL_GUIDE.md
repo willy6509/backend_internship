@@ -8,25 +8,27 @@ Panduan visual lengkap untuk memahami arsitektur, deployment, dan operasional si
 
 Kami telah membuat **9 diagram komprehensif** untuk membantu Anda memahami sistem:
 
-| # | Diagram | Fokus | Pengguna |
-|---|---------|-------|----------|
-| 1️⃣ | Deployment Flow | Proses push ke production | DevOps, Developer |
-| 2️⃣ | System Architecture | Struktur container & layanan | Architect, DevOps |
-| 3️⃣ | Request Flow | Alur request HTTP | Developer, QA |
-| 4️⃣ | Crawler Pipeline | Data ingestion workflow | Data Engineer |
-| 5️⃣ | Observer Pattern | Database integrity | Developer |
-| 6️⃣ | Security & Middleware | Authentikasi & validasi | Security, Backend |
-| 7️⃣ | Maintenance Schedule | Operasional harian/mingguan | DevOps, Ops |
-| 8️⃣ | Rollback Procedures | Emergency recovery | DevOps, SRE |
-| 9️⃣ | Data Query Flow | Database operation | DBA, Developer |
+| #   | Diagram               | Fokus                        | Pengguna          |
+| --- | --------------------- | ---------------------------- | ----------------- |
+| 1️⃣  | Deployment Flow       | Proses push ke production    | DevOps, Developer |
+| 2️⃣  | System Architecture   | Struktur container & layanan | Architect, DevOps |
+| 3️⃣  | Request Flow          | Alur request HTTP            | Developer, QA     |
+| 4️⃣  | Crawler Pipeline      | Data ingestion workflow      | Data Engineer     |
+| 5️⃣  | Observer Pattern      | Database integrity           | Developer         |
+| 6️⃣  | Security & Middleware | Authentikasi & validasi      | Security, Backend |
+| 7️⃣  | Maintenance Schedule  | Operasional harian/mingguan  | DevOps, Ops       |
+| 8️⃣  | Rollback Procedures   | Emergency recovery           | DevOps, SRE       |
+| 9️⃣  | Data Query Flow       | Database operation           | DBA, Developer    |
 
 ---
 
 ## 🔍 PENJELASAN SINGKAT SETIAP DIAGRAM
 
 ### 1️⃣ DEPLOYMENT FLOW
+
 **Kapan menggunakan:** Sebelum deploy ke production
 **Yang ditunjukkan:**
+
 - Pull dari Git
 - Setup konfigurasi
 - Pembedaan: Local vs Production
@@ -34,16 +36,19 @@ Kami telah membuat **9 diagram komprehensif** untuk membantu Anda memahami siste
 - Monitoring pasca-deployment
 
 **Aksi Penting:**
+
 ```bash
-git clone → cp .env.example .env → docker-compose up -d → 
+git clone → cp .env.example .env → docker-compose up -d →
 php artisan migrate --force → Health check ✅
 ```
 
 ---
 
 ### 2️⃣ SYSTEM ARCHITECTURE
+
 **Kapan menggunakan:** Memahami struktur sistem keseluruhan
 **Komponen:**
+
 ```
 ┌─ External Services (GitHub, X API, Let's Encrypt)
 │
@@ -71,6 +76,7 @@ php artisan migrate --force → Health check ✅
 ```
 
 **Interaksi:**
+
 - GitHub → Pull code ke App
 - X API → Data via Queue Worker
 - PostgreSQL ← App queries/writes
@@ -80,6 +86,7 @@ php artisan migrate --force → Health check ✅
 ---
 
 ### 3️⃣ REQUEST FLOW
+
 **Kapan menggunakan:** Debug HTTP requests
 **Alur Client → Server → Database:**
 
@@ -112,6 +119,7 @@ Back to Browser (HTTPS)
 ---
 
 ### 4️⃣ CRAWLER PIPELINE
+
 **Kapan menggunakan:** Debugging data ingestion
 **Proses:**
 
@@ -143,6 +151,7 @@ Queue Worker
 ---
 
 ### 5️⃣ DATABASE OBSERVER PATTERN
+
 **Kapan menggunakan:** Memahami blockchain hashing
 **Mekanisme:**
 
@@ -165,6 +174,7 @@ Immutable record ✅
 ---
 
 ### 6️⃣ SECURITY & MIDDLEWARE
+
 **Kapan menggunakan:** Memahami security layers
 **Lapisan Keamanan:**
 
@@ -172,27 +182,27 @@ Immutable record ✅
 1. SSL/TLS Verification
    ↓ ❌ Invalid cert → Reject
    ↓ ✅ Valid cert → Continue
-   
+
 2. Security Headers
    - X-Frame-Options: DENY
    - X-Content-Type-Options: nosniff
    - HSTS: 31536000 seconds
    - CSP headers
-   
+
 3. API Key Middleware
    - Extract header: x-api-key
    - Validate IP whitelist
    - hash_equals() comparison
-   
+
 4. Role Middleware
    - Check user permissions
    - Enforce RBAC
-   
+
 5. Input Validation
    - Date format: Y-m-d
    - URL regex: twitter.com
    - Type enum: post|reply
-   
+
 ✅ Request allowed → Process
 ❌ Failed any check → Reject
 ```
@@ -200,6 +210,7 @@ Immutable record ✅
 ---
 
 ### 7️⃣ MAINTENANCE SCHEDULE
+
 **Kapan menggunakan:** Operasional rutin
 **Jadwal:**
 
@@ -229,6 +240,7 @@ Immutable record ✅
 ---
 
 ### 8️⃣ ROLLBACK PROCEDURES
+
 **Kapan menggunakan:** Emergency recovery
 **Skenario & Solusi:**
 
@@ -246,7 +258,7 @@ Issue detected?
 └─ Configuration problem
    └─ Edit .env
       → docker-compose restart
-   
+
 → Health check (curl /up)
   ├─ ✅ OK? → Document & fix root cause
   └─ ❌ Fail? → Try different rollback
@@ -255,6 +267,7 @@ Issue detected?
 ---
 
 ### 9️⃣ DATA QUERY FLOW
+
 **Kapan menggunakan:** Optimization & debugging
 **Proses Query:**
 
@@ -268,7 +281,7 @@ Issue detected?
 3. Middleware Check
    ✅ API Key valid
    ✅ User permission
-   
+
 4. Input Validation
    ✅ search is string
    ✅ limit is integer
@@ -297,23 +310,27 @@ Issue detected?
 ## 💡 CARA MENGGUNAKAN FLOWCHART INI
 
 ### Untuk Developer:
+
 1. Baca **Diagram 1** untuk memahami deployment
 2. Baca **Diagram 3** untuk REST API
 3. Baca **Diagram 4** untuk data processing
 4. Baca **Diagram 6** untuk security checks
 
 ### Untuk DevOps/SRE:
+
 1. Baca **Diagram 2** untuk architecture overview
 2. Baca **Diagram 7** untuk maintenance schedule
 3. Baca **Diagram 8** untuk emergency procedures
 4. Baca **DEPLOYMENT.md** untuk step-by-step
 
 ### Untuk Database Admin:
+
 1. Baca **Diagram 5** untuk integrity mechanism
 2. Baca **Diagram 9** untuk query optimization
 3. Baca **DEPLOYMENT.md** section "Backup & Restore"
 
 ### Untuk Security Engineer:
+
 1. Baca **Diagram 2** untuk architecture
 2. Baca **Diagram 6** untuk middleware checks
 3. Baca **FIX_SUMMARY.md** section "Security Improvements"
@@ -324,25 +341,33 @@ Issue detected?
 ## 🎯 TROUBLESHOOTING MENGGUNAKAN FLOWCHART
 
 ### Problem: API returns 401
+
 → Ikuti **Diagram 6: Security & Middleware**
+
 - Check API key in request header
 - Verify .env SENTINEL_API_KEY
 - Test with: `curl -H "x-api-key: KEY" https://domain/api/data`
 
 ### Problem: Data tidak tersimpan
+
 → Ikuti **Diagram 4: Crawler Pipeline**
+
 - Check crawler logs: `docker-compose logs web`
 - Verify database connection
 - Check observer hashing
 
 ### Problem: Server crash
+
 → Ikuti **Diagram 8: Rollback Procedures**
+
 - Check service status: `docker-compose ps`
 - View logs: `docker-compose logs -f web`
 - Rollback previous commit if needed
 
 ### Problem: Slow queries
+
 → Ikuti **Diagram 9: Data Query Flow**
+
 - Check database indexes
 - Monitor query performance
 - Review query logs
@@ -355,11 +380,13 @@ Semua flowchart tersedia dalam format Mermaid di:
 **`FLOWCHART.md`**
 
 Untuk render sebagai gambar:
+
 1. Copy Mermaid syntax
 2. Paste di: https://mermaid.live
 3. Export sebagai PNG/SVG
 
 Atau gunakan VS Code extension:
+
 - Install "Markdown Preview Mermaid Support"
 - Preview langsung di editor
 
@@ -408,6 +435,7 @@ FLOWCHART.md (9 Diagrams)
 ## ✨ SUMMARY
 
 Dengan 9 diagram ini, Anda memiliki complete visual documentation:
+
 - ✅ Deployment workflows
 - ✅ System architecture
 - ✅ Data flows
