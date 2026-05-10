@@ -22,6 +22,7 @@ Complete step-by-step guide for deploying, maintaining, and debugging the Sentin
 ## Prerequisites
 
 ### System Requirements
+
 - **Docker & Docker Compose** (for containerized deployment)
 - **PHP 8.3+** (for local development)
 - **PostgreSQL 14+** (database)
@@ -30,6 +31,7 @@ Complete step-by-step guide for deploying, maintaining, and debugging the Sentin
 - **Git** (version control)
 
 ### Jagoan Hosting Requirements
+
 - SSH access enabled
 - Docker support
 - Minimum 2GB RAM
@@ -37,6 +39,7 @@ Complete step-by-step guide for deploying, maintaining, and debugging the Sentin
 - Port 80/443 available
 
 ### Credentials & Access
+
 - GitHub/Git repository SSH key
 - Database credentials
 - X/Twitter API tokens
@@ -72,6 +75,7 @@ vi .env
 ```
 
 **Required values to update in .env:**
+
 ```env
 APP_URL=https://yourdomain.com
 APP_DEBUG=false
@@ -386,6 +390,7 @@ server {
 ```
 
 Enable the site:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/sentinel /etc/nginx/sites-enabled/
 sudo nginx -t
@@ -531,10 +536,12 @@ docker-compose exec web rm storage/logs/laravel.log
 ### Regular Maintenance Schedule
 
 #### Daily
+
 - Monitor error logs: `docker-compose logs web | grep ERROR`
 - Check database size: `docker-compose exec db psql -U sentinel_user -d sentinel_db -c "\l+"`
 
 #### Weekly
+
 ```bash
 # Clear expired caches
 docker-compose exec web php artisan cache:clear
@@ -547,6 +554,7 @@ docker-compose exec web php artisan optimize
 ```
 
 #### Monthly
+
 ```bash
 # Update dependencies securely
 composer update --no-dev --dry-run  # preview changes
@@ -687,18 +695,21 @@ docker-compose exec web df -h   # disk space
 ### Log Management
 
 #### Application Logs Location
+
 ```
 storage/logs/laravel.log           # Main application log
 storage/logs/queue.log             # Queue worker logs
 ```
 
 #### Access Logs
+
 ```
 /var/log/nginx/access.log          # Nginx access logs
 /var/log/nginx/error.log           # Nginx errors
 ```
 
 #### Database Logs
+
 ```bash
 docker-compose logs db | tail -100
 ```
@@ -782,6 +793,7 @@ docker-compose exec web php artisan migrate:status
 ## Useful Commands Reference
 
 ### Container Management
+
 ```bash
 docker-compose restart web         # Restart Laravel
 docker-compose restart db          # Restart database
@@ -792,6 +804,7 @@ docker-compose down -v             # Also remove volumes (DATA LOSS!)
 ```
 
 ### Laravel Artisan Commands
+
 ```bash
 # Cache management
 php artisan config:cache
@@ -819,6 +832,7 @@ php artisan make:command
 ```
 
 ### Docker Commands
+
 ```bash
 docker-compose logs web              # View logs
 docker-compose logs -f web           # Follow logs
@@ -835,17 +849,17 @@ docker volume ls                     # List volumes
 
 ## Troubleshooting Quick Reference
 
-| Issue | Solution |
-|-------|----------|
-| **Database connection failed** | Check `.env` DB credentials, verify PostgreSQL is running |
+| Issue                            | Solution                                                               |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| **Database connection failed**   | Check `.env` DB credentials, verify PostgreSQL is running              |
 | **Permission denied on storage** | `docker-compose exec web chown -R www-data:www-data storage bootstrap` |
-| **Out of memory** | Increase Docker memory limit or reduce worker processes |
-| **Migrations failing** | Check `php artisan migrate:status`, check migration files |
-| **Queue not processing** | Verify `QUEUE_CONNECTION`, check supervisor logs |
-| **API returns 401** | Verify `SENTINEL_API_KEY` in `.env`, check request header |
-| **Slow response times** | Check database queries, enable caching, optimize routes |
-| **SSL certificate error** | Verify certificate paths, check renewal status |
-| **Disk full** | Rotate logs, clean old files, increase storage |
+| **Out of memory**                | Increase Docker memory limit or reduce worker processes                |
+| **Migrations failing**           | Check `php artisan migrate:status`, check migration files              |
+| **Queue not processing**         | Verify `QUEUE_CONNECTION`, check supervisor logs                       |
+| **API returns 401**              | Verify `SENTINEL_API_KEY` in `.env`, check request header              |
+| **Slow response times**          | Check database queries, enable caching, optimize routes                |
+| **SSL certificate error**        | Verify certificate paths, check renewal status                         |
+| **Disk full**                    | Rotate logs, clean old files, increase storage                         |
 
 ---
 
@@ -861,6 +875,7 @@ docker volume ls                     # List volumes
 ## Change Log
 
 ### Version 1.0.0 (2024-05-10)
+
 - Initial deployment guide
 - Docker containerization
 - Security hardening

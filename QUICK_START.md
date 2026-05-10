@@ -49,36 +49,43 @@ curl http://localhost/up            # Health check
 ## 📝 Common Tasks
 
 ### Run Crawlers
+
 ```bash
 docker-compose exec web php artisan crawl:x --limit=50
 ```
 
 ### Run Database Cleanup
+
 ```bash
 docker-compose exec web php artisan data:retention
 ```
 
 ### Execute Custom Command
+
 ```bash
 docker-compose exec web php artisan COMMAND_NAME
 ```
 
 ### SSH into Container
+
 ```bash
 docker-compose exec web /bin/bash
 ```
 
 ### View Application Logs
+
 ```bash
 docker-compose logs web --tail=100 -f
 ```
 
 ### Backup Database
+
 ```bash
 docker-compose exec db pg_dump -U sentinel_user sentinel_db | gzip > backup.sql.gz
 ```
 
 ### Restore Database
+
 ```bash
 gunzip < backup.sql.gz | docker-compose exec -T db psql -U sentinel_user -d sentinel_db
 ```
@@ -88,23 +95,27 @@ gunzip < backup.sql.gz | docker-compose exec -T db psql -U sentinel_user -d sent
 ## 🔧 Troubleshooting
 
 ### Permission Error?
+
 ```bash
 docker-compose exec web chown -R www-data:www-data storage bootstrap
 ```
 
 ### Database Error?
+
 ```bash
 docker-compose logs db
 docker-compose exec db psql -U sentinel_user -d sentinel_db -c "SELECT version();"
 ```
 
 ### Queue Not Working?
+
 ```bash
 docker-compose exec web php artisan queue:work --once
 docker-compose logs web | grep Queue
 ```
 
 ### Clear All Caches
+
 ```bash
 docker-compose exec web php artisan cache:clear
 docker-compose exec web php artisan config:clear
@@ -160,15 +171,15 @@ docker-compose up -d
 
 ## 💾 Key Files
 
-| File | Purpose |
-|------|---------|
-| `.env` | Environment configuration (secrets) |
-| `.env.example` | Environment template |
-| `Dockerfile` | Docker container definition |
-| `docker-compose.yml` | Multi-container orchestration |
-| `DEPLOYMENT.md` | Full deployment guide |
-| `docker/nginx.conf` | Nginx configuration |
-| `docker/supervisor.conf` | Process management |
+| File                     | Purpose                             |
+| ------------------------ | ----------------------------------- |
+| `.env`                   | Environment configuration (secrets) |
+| `.env.example`           | Environment template                |
+| `Dockerfile`             | Docker container definition         |
+| `docker-compose.yml`     | Multi-container orchestration       |
+| `DEPLOYMENT.md`          | Full deployment guide               |
+| `docker/nginx.conf`      | Nginx configuration                 |
+| `docker/supervisor.conf` | Process management                  |
 
 ---
 
