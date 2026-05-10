@@ -10,10 +10,10 @@ return new class extends Migration
     {
         Schema::create('personal_access_tokens', function (Blueprint $table) {
             $table->id();
-            
+
             // PENTING: Kita menggunakan uuidMorphs karena ID User kita adalah UUID, bukan angka biasa.
-            $table->uuidMorphs('tokenable'); 
-            
+            $table->uuidMorphs('tokenable');
+
             $table->string('name');
             $table->string('token', 64)->unique();
             $table->text('abilities')->nullable();

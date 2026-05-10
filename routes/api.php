@@ -1,14 +1,16 @@
 <?php
-use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DataController;
+use App\Http\Middleware\CheckApiKey;
+use Illuminate\Support\Facades\Route;
 
 // --- Authentication ---
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 // Rute khusus untuk Crawler Python (Dilindungi Middleware API Key buatan sendiri)
-Route::post('/internal/ingest', [\App\Http\Controllers\Api\DataController::class, 'ingestData'])
-    ->middleware(\App\Http\Middleware\ApiKeyMiddleware::class);
+Route::post('/internal/ingest', [DataController::class, 'ingestData'])
+    ->middleware([CheckApiKey::class, 'throttle:120,1']);
 
 // --- Protected Routes ---
 Route::middleware('auth:sanctum')->group(function () {

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Observers;
 
 use App\Models\CrawledData;
@@ -14,7 +15,7 @@ class CrawledDataObserver
         // 1. Ambil data terakhir untuk mendapatkan previous_hash
         // Menggunakan lockForUpdate() agar aman dari Race Condition jika crawling sangat cepat
         $lastRecord = CrawledData::lockForUpdate()->latest('created_at')->first();
-        
+
         $previousHash = $lastRecord ? $lastRecord->current_hash : 'GENESIS_BLOCK_0000000000000000';
         $crawledData->previous_hash = $previousHash;
 
@@ -26,7 +27,7 @@ class CrawledDataObserver
             $crawledData->username,
             $crawledData->posted_at,
             $crawledData->content,
-            $crawledData->url
+            $crawledData->url,
         ]);
 
         // 3. Generate SHA-256 Hash

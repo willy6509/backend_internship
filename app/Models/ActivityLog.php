@@ -1,32 +1,31 @@
 <?php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use App\Observers\ActivityLogObserver;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Model;
 
 class ActivityLog extends Model
 {
     use HasUuids;
 
     protected $table = 'activity_logs';
-    
+
     // Log tidak boleh diubah sama sekali oleh aplikasi
     // Kita matikan fitur update standard Eloquent untuk keamanan tambahan
     public $timestamps = true;
 
     protected $fillable = [
-        'previous_hash', 
-        'current_hash', 
-        'user_id', 
-        'user_ip', 
-        'user_agent', 
-        'event', 
-        'description', 
-        'subject_id', 
-        'subject_type', 
-        'properties'
+        'previous_hash',
+        'current_hash',
+        'user_id',
+        'user_ip',
+        'user_agent',
+        'event',
+        'description',
+        'subject_id',
+        'subject_type',
+        'properties',
     ];
 
     protected $casts = [

@@ -23,6 +23,6 @@ class DuplicateCheckerService
     {
         // Logika untuk mengecek kemiripan kalimat (Fuzzy String Matching)
         // Bisa dikembangkan nanti jika buzzer memodifikasi sedikit teksnya
-        return false; 
+        return false;
     }
 }

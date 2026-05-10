@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -9,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            
+
             // BLOCKCHAIN MECHANISM (Jantung Integritas Data)
             $table->string('previous_hash', 64)->nullable()->index();
             $table->string('current_hash', 64)->unique();
@@ -22,19 +23,19 @@ return new class extends Migration
             // CONTEXT (Apa yang terjadi?)
             $table->string('event'); // created, updated, deleted, login, export
             $table->string('description'); // Penjelasan manusiawi
-            
+
             // POLYMORPHIC (Objek apa yang diubah?)
             // Bisa nyambung ke User, CrawledData, atau model lain
             $table->uuid('subject_id')->nullable();
-            $table->string('subject_type')->nullable(); 
+            $table->string('subject_type')->nullable();
 
             // FORENSIK DATA (Apa yang berubah?)
             // Menyimpan JSON: { "old": { "status": "pending" }, "new": { "status": "handled" } }
             $table->jsonb('properties')->nullable();
 
             $table->timestamps(); // Created_at adalah waktu kejadian
-            
-            // Catatan: Log TIDAK BOLEH di-soft delete atau di-update. 
+
+            // Catatan: Log TIDAK BOLEH di-soft delete atau di-update.
             // Log bersifat "Append-Only" (Hanya boleh nambah).
         });
     }

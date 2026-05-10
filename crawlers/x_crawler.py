@@ -7,7 +7,7 @@ import time
 import requests
 
 LARAVEL_API_URL = "http://127.0.0.1:8000/api/internal/ingest"
-API_KEY = "KunciRahasiaPolda2026" # <-- Ini harus SAMA PERSIS dengan di .env Laravel
+API_KEY = "BhayangkaraJateng2026Secure!" # <-- Ini harus SAMA PERSIS dengan di .env Laravel
 
 def send_to_laravel(data_dict):
     """Fungsi untuk menembak API Laravel (Microservices)"""

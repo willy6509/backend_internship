@@ -15,16 +15,16 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            
+
             // RBAC & Wilayah
             $table->enum('role', ['officer', 'analyst', 'admin', 'superadmin'])->default('officer');
             $table->string('region_code')->nullable()->index(); // Kode Wilayah (misal: SL01 untuk Solo)
-            
+
             // Keamanan Akun
             $table->boolean('is_active')->default(true); // Untuk mematikan akun tanpa hapus
             $table->timestamp('last_login_at')->nullable();
             $table->ipAddress('last_login_ip')->nullable();
-            
+
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes(); // Audit trail: Data user tidak pernah hilang fisik

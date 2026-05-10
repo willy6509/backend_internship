@@ -1,11 +1,10 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
-use App\Observers\CrawledDataObserver;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 
 class CrawledData extends Model
 {
@@ -13,19 +12,20 @@ class CrawledData extends Model
 
     // Set agar ID menggunakan UUID, bukan Auto-Increment
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
-        'previous_hash', 
-        'current_hash', 
-        'type', 
-        'source', 
-        'username', 
-        'posted_at', 
-        'content', 
-        'url', 
-        'parent_url', 
-        'raw_payload'
+        'previous_hash',
+        'current_hash',
+        'type',
+        'source',
+        'username',
+        'posted_at',
+        'content',
+        'url',
+        'parent_url',
+        'raw_payload',
     ];
 
     protected $casts = [
@@ -36,7 +36,7 @@ class CrawledData extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         // Otomatis generate UUID saat model dibuat
         static::creating(function ($model) {
             if (empty($model->id)) {
