@@ -10,10 +10,10 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'nip' => 'required|string',
+            'username' => 'required|string',
             'password' => 'required|string',
         ]);
-        $user = User::where('nip', $request->nip)->first();
+        $user = User::where('username', $request->username)->first();
         if (! $user || ! Hash::check($request->password, $user->password) || ! $user->is_active) {
             return response()->json([
                 'success' => false,
@@ -42,6 +42,8 @@ class AuthController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'nrp' => $user->nrp,
+                    'email' => $user->email,
                     'role' => $user->role,
                     'region_code' => $user->region_code,
                 ],

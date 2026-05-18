@@ -1,22 +1,18 @@
 <?php
-
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable; // PENTING
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, HasUuids, Notifiable, SoftDeletes;
 
-    // UUID otomatis di-handle oleh Trait HasUuids
-
     protected $fillable = [
-        'nip',
+        'username',
+        'nrp',
         'name',
         'email',
         'password',

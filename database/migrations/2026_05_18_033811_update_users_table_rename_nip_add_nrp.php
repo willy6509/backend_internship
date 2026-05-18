@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            // Rename nip -> username
+            $table->renameColumn('nip', 'username');
+            // Tambah kolom nrp
+            $table->string('nrp')->nullable()->after('username');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->renameColumn('username', 'nip');
+            $table->dropColumn('nrp');
+        });
+    }
+};
