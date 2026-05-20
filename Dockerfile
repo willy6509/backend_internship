@@ -13,6 +13,8 @@ RUN apk add --no-cache \
     bash \
     supervisor \
     nginx \
+    python3 \
+    py3-pip \
     && docker-php-ext-install -j$(nproc) \
     pdo \
     pdo_pgsql \
@@ -20,7 +22,8 @@ RUN apk add --no-cache \
     fileinfo \
     mbstring \
     xml \
-    intl
+    intl \
+    && pip3 install --break-system-packages twikit requests
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

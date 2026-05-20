@@ -2,6 +2,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DataController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\FilterController; // JANGAN LUPA IMPORT INI
 use App\Http\Middleware\CheckApiKey;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/ai/sync', function () {
             return response()->json(['message' => 'Syncing with AI database...'], 202);
         });
+
+        // RUTE VALIDASI SENTIMEN
+        Route::patch('/crawled-data/{id}', [DataController::class, 'updateSentiment']);
+        Route::delete('/crawled-data/{id}', [DataController::class, 'destroy']);
+
+        // RUTE PENGATURAN FILTER CRAWLING
+        Route::get('/filters', [FilterController::class, 'index']);
+        Route::post('/filters', [FilterController::class, 'store']);
+        Route::put('/filters/{id}', [FilterController::class, 'update']);
+        Route::patch('/filters/{id}', [FilterController::class, 'toggleActive']);
+        Route::delete('/filters/{id}', [FilterController::class, 'destroy']);
     });
 
     // Admin & Super Admin Only

@@ -13,7 +13,7 @@ class DataController extends Controller
 {
     public function index(Request $request)
     {
-        $limit = $request->query('limit', 50);
+        $limit = $request->query('limit', 50000);
         $query = CrawledData::select('id', 'type', 'source', 'username', 'posted_at', 'content', 'url', 'ai_sentiment', 'main_topic', 'is_emergency', 'location');
 
         if ($request->has('search')) {
@@ -108,6 +108,30 @@ class DataController extends Controller
             Log::error('ML API Connection Failed: ' . $e->getMessage());
         }
 
+        // --- AWAL JARING PENGAMAN (FALLBACK LOKASI) ---
+        if (empty($mlData['location']) || $mlData['location'] === 'Tidak Diketahui') {
+            $jateng_cities = [
+                'semarang', 'grobogan', 'rembang', 'demak', 'kendal', 'salatiga', 
+                'solo', 'surakarta', 'banyumas', 'magelang', 'pati', 'kudus', 
+                'jepara', 'blora', 'sragen', 'boyolali', 'klaten', 'sukoharjo', 
+                'wonogiri', 'karanganyar', 'wonosobo', 'purworejo', 'kebumen', 
+                'cilacap', 'purbalingga', 'banjarnegara', 'brebes', 'tegal', 
+                'pemalang', 'pekalongan', 'batang', 'temanggung'
+            ];
+
+            // Pakai variabel $content milik lu, dibikin huruf kecil semua
+            $textLower = strtolower($content);
+
+            foreach ($jateng_cities as $city) {
+                if (str_contains($textLower, $city)) {
+                    // Kalau ketemu, timpa nilai location-nya
+                    $mlData['location'] = ucfirst($city);
+                    break;
+                }
+            }
+        }
+        // --- AKHIR JARING PENGAMAN ---
+
         // Simpan ke DB beserta hasil ML
         $record = \App\Models\CrawledData::firstOrCreate(
             ['url' => $validated['url']],
@@ -132,4 +156,66 @@ class DataController extends Controller
 
         return response()->json(['status' => 'ignored_duplicate'], 200);
     }
+
+// --- TAMBAHAN UNTUK FITUR VALIDASI ANALYST ---
+
+    public function updateSentiment(Request $request, $id)
+    {
+        $request->validate([
+            'ai_sentiment' => 'sometimes|string|in:Positif,Negatif,Netral',
+            'is_validated' => 'sometimes|boolean',
+            'validated_by' => 'nullable|string',
+        ]);
+
+        $data = \App\Models\CrawledData::find($id);
+
+        if (!$data) {
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        $data->update($request->only(['ai_sentiment', 'is_validated', 'validated_by']));
+
+	DB::table('activity_logs')->insert([
+            'user_id' => auth()->id() ?? 1, // Jaga-jaga kalau auth belum nyangkut
+            'action' => 'VALIDATE_DATA',
+            'target' => 'Data ID: ' . $id,
+            'ip_address' => request()->ip(),
+            'details' => json_encode(['sentiment' => $request->ai_sentiment, 'status' => 'Validated']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Validasi sentimen berhasil disimpan!',
+            'data' => $data
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $data = \App\Models\CrawledData::find($id);
+
+        if (!$data) {
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        $data->delete();
+
+	DB::table('activity_logs')->insert([
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'REJECT_DATA',
+            'target' => 'Data ID: ' . $id,
+            'ip_address' => request()->ip(),
+            'details' => json_encode(['status' => 'Deleted/Rejected as Spam']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data hoax/spam berhasil dihapus dari sistem.'
+        ]);
+    }
+
 }
