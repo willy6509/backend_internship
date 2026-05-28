@@ -3,219 +3,106 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\CrawledData;
-use App\Services\DuplicateCheckerService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Models\CrawledData;
+use Illuminate\Support\Facades\DB;
 
 class DataController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $limit = $request->query('limit', 50000);
-        $query = CrawledData::select('id', 'type', 'source', 'username', 'posted_at', 'content', 'url', 'ai_sentiment', 'main_topic', 'is_emergency', 'location');
-
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('content', 'ilike', '%'.$search.'%')
-                    ->orWhere('username', 'ilike', '%'.$search.'%');
-            });
-        }
-
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $startDate = $request->input('start_date');
-            $endDate = $request->input('end_date');
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
-                $query->whereBetween('posted_at', [$startDate.' 00:00:00', $endDate.' 23:59:59']);
-            }
-        }
-
-        $query->orderBy('posted_at', 'desc');
-        $data = $query->paginate($limit);
-
-        return response()->json(['success' => true, 'data' => $data], 200);
+        $data = CrawledData::where('is_validated', false)->orderBy('id', 'desc')->paginate(50);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     public function show($id)
     {
-        $data = CrawledData::where('id', $id)->first();
-        if (! $data) {
-            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
-        }
-
-        $replies = [];
-        if ($data->type === 'post') {
-            $replies = CrawledData::where('parent_url', $data->url)
-                ->select('id', 'username', 'posted_at', 'content', 'url', 'ai_sentiment', 'main_topic')
-                ->orderBy('posted_at', 'asc')
-                ->get();
-        }
-
-        return response()->json(['success' => true, 'data' => ['post' => $data, 'replies' => $replies]], 200);
+        $data = CrawledData::find($id);
+        if (!$data) return response()->json(['success' => false, 'message' => 'Data not found'], 404);
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
     public function ingestData(Request $request)
     {
-        // FIX FINAL: Tinggalkan Regex. Gunakan bawaan Laravel 'starts_with' yang 100% aman.
-        $validated = $request->validate([
-            'type' => 'required|in:post,reply',
-            'username' => 'required|string',
-            'posted_at' => 'required|date_format:Y-m-d H:i:s',
-            'content' => 'required|string',
-            'url' => 'required|url|starts_with:https://x.com/,https://twitter.com/',
-            'parent_url' => 'nullable|url|starts_with:https://x.com/,https://twitter.com/',
+        $request->validate([
+            'type'      => 'required|string',
+            'username'  => 'required|string',
+            'posted_at' => 'required',
+            'content'   => 'required|string',
+            'url'       => 'required|string',
         ]);
 
-        $content = $request->input('content');
-
-        if (DuplicateCheckerService::isContentExist($content)) {
-            return response()->json([
-                'status' => 'ignored',
-                'message' => 'Konten teks sudah ada di database, diabaikan.',
-                'url' => $request->input('url'),
-            ], 200);
+        // Cek duplikat berdasarkan URL
+        $existing = CrawledData::where('url', $request->url)->first();
+        if ($existing) {
+            return response()->json(['success' => true, 'message' => 'Duplicate', 'data' => $existing], 200);
         }
 
-        // --- INTEGRASI KE ML FASTAPI ---
-        $mlData = [
-            'ai_sentiment' => null,
-            'main_topic' => null,
-            'is_emergency' => false,
-            'location' => null,
-        ];
+        // Generate hash otomatis
+        $currentHash  = hash('sha256', $request->content . $request->url);
+        $lastData     = CrawledData::latest()->first();
+        $previousHash = $lastData ? $lastData->current_hash : hash('sha256', 'GENESIS');
 
-        try {
-            $response = Http::timeout(10)->post('http://103.245.38.28:8000/result/predict', [
-                'text' => $content
-            ]);
+        $data = CrawledData::create([
+            'type'          => $request->type,
+            'source'        => $request->source ?? 'X',
+            'username'      => $request->username,
+            'posted_at'     => $request->posted_at,
+            'content'       => $request->content,
+            'url'           => $request->url,
+            'parent_url'    => $request->parent_url ?? null,
+            'raw_payload'   => $request->raw_payload ?? [],
+            'current_hash'  => $currentHash,
+            'previous_hash' => $previousHash,
+        ]);
 
-            if ($response->successful()) {
-                $result = $response->json();
-                if (isset($result['status']) && $result['status'] === 'success') {
-                    $mlData = [
-                        'ai_sentiment' => $result['data']['sentiment'] ?? null,
-                        'main_topic'   => $result['data']['topic'] ?? null,
-                        'is_emergency' => $result['data']['is_emergency'] ?? false,
-                        'location'     => $result['data']['location'] ?? null,
-                    ];
-                }
-            } else {
-                Log::warning('ML API Error: ' . $response->body());
-            }
-        } catch (\Exception $e) {
-            Log::error('ML API Connection Failed: ' . $e->getMessage());
-        }
-
-        // --- AWAL JARING PENGAMAN (FALLBACK LOKASI) ---
-        if (empty($mlData['location']) || $mlData['location'] === 'Tidak Diketahui') {
-            $jateng_cities = [
-                'semarang', 'grobogan', 'rembang', 'demak', 'kendal', 'salatiga', 
-                'solo', 'surakarta', 'banyumas', 'magelang', 'pati', 'kudus', 
-                'jepara', 'blora', 'sragen', 'boyolali', 'klaten', 'sukoharjo', 
-                'wonogiri', 'karanganyar', 'wonosobo', 'purworejo', 'kebumen', 
-                'cilacap', 'purbalingga', 'banjarnegara', 'brebes', 'tegal', 
-                'pemalang', 'pekalongan', 'batang', 'temanggung'
-            ];
-
-            // Pakai variabel $content milik lu, dibikin huruf kecil semua
-            $textLower = strtolower($content);
-
-            foreach ($jateng_cities as $city) {
-                if (str_contains($textLower, $city)) {
-                    // Kalau ketemu, timpa nilai location-nya
-                    $mlData['location'] = ucfirst($city);
-                    break;
-                }
-            }
-        }
-        // --- AKHIR JARING PENGAMAN ---
-
-        // Simpan ke DB beserta hasil ML
-        $record = \App\Models\CrawledData::firstOrCreate(
-            ['url' => $validated['url']],
-            [
-                'type' => $validated['type'],
-                'source' => 'X',
-                'username' => $validated['username'],
-                'posted_at' => $validated['posted_at'],
-                'content' => $validated['content'],
-                'parent_url' => $validated['parent_url'] ?? null,
-                'raw_payload' => $request->all(),
-                'ai_sentiment' => $mlData['ai_sentiment'],
-                'main_topic' => $mlData['main_topic'],
-                'is_emergency' => $mlData['is_emergency'],
-                'location' => $mlData['location'],
-            ]
-        );
-
-        if ($record->wasRecentlyCreated) {
-            return response()->json(['status' => 'inserted'], 201);
-        }
-
-        return response()->json(['status' => 'ignored_duplicate'], 200);
+        return response()->json(['success' => true, 'message' => 'Data saved', 'data' => $data], 201);
     }
 
-// --- TAMBAHAN UNTUK FITUR VALIDASI ANALYST ---
+    public function keywords()
+    {
+        $filters = DB::table('crawling_filters')
+            ->where('is_active', true)
+            ->get();
+
+        // Pisahkan berdasarkan tipe keyword (location vs topic)
+        $locations = $filters->where('platform', 'location')->pluck('keyword')->toArray();
+        $topics    = $filters->where('platform', 'topic')->pluck('keyword')->toArray();
+
+        // Fallback kalau kosong
+        if (empty($locations)) {
+            $locations = ['semarang', 'jateng', 'solo', 'magelang', 'banyumas', 'klaten', 'demak', 'pati'];
+        }
+        if (empty($topics)) {
+            $topics = ['polisi', 'oknum', 'polda', 'begal', 'klitih', 'lantas', 'isilop'];
+        }
+
+        return response()->json(['success' => true, 'data' => [
+            'locations' => $locations,
+            'topics'    => $topics,
+        ]]);
+    }
 
     public function updateSentiment(Request $request, $id)
     {
-        $request->validate([
-            'ai_sentiment' => 'sometimes|string|in:Positif,Negatif,Netral',
-            'is_validated' => 'sometimes|boolean',
-            'validated_by' => 'nullable|string',
+        $data = CrawledData::find($id);
+        if (!$data) return response()->json(['success' => false, 'message' => 'Data not found'], 404);
+
+        $data->update([
+            'ai_sentiment' => $request->ai_sentiment ?? $data->ai_sentiment,
+            'is_validated' => true,
+            'validated_by' => $request->validated_by ?? 'Analyst',
+            'validated_at' => now()
         ]);
 
-        $data = \App\Models\CrawledData::find($id);
-
-        if (!$data) {
-            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
-        }
-
-        $data->update($request->only(['ai_sentiment', 'is_validated', 'validated_by']));
-
-	DB::table('activity_logs')->insert([
-            'user_id' => auth()->id() ?? 1, // Jaga-jaga kalau auth belum nyangkut
-            'action' => 'VALIDATE_DATA',
-            'target' => 'Data ID: ' . $id,
-            'ip_address' => request()->ip(),
-            'details' => json_encode(['sentiment' => $request->ai_sentiment, 'status' => 'Validated']),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Validasi sentimen berhasil disimpan!',
-            'data' => $data
-        ]);
+        return response()->json(['success' => true, 'message' => 'Data successfully validated', 'data' => $data]);
     }
 
     public function destroy($id)
     {
-        $data = \App\Models\CrawledData::find($id);
-
-        if (!$data) {
-            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
-        }
-
+        $data = CrawledData::find($id);
+        if (!$data) return response()->json(['success' => false, 'message' => 'Data not found'], 404);
         $data->delete();
-
-	DB::table('activity_logs')->insert([
-            'user_id' => auth()->id() ?? 1,
-            'action' => 'REJECT_DATA',
-            'target' => 'Data ID: ' . $id,
-            'ip_address' => request()->ip(),
-            'details' => json_encode(['status' => 'Deleted/Rejected as Spam']),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data hoax/spam berhasil dihapus dari sistem.'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Data deleted successfully']);
     }
-
 }

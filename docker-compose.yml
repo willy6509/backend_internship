@@ -22,6 +22,7 @@ services:
       - db
     networks:
       - sentinel-network
+      - shared-network
     restart: always
 
   db:
@@ -48,3 +49,6 @@ volumes:
 networks:
   sentinel-network:
     driver: bridge
+  shared-network:
+    external: true
+    name: sentinel-shared-network

@@ -10,9 +10,7 @@ class CrawledData extends Model
 {
     use SoftDeletes;
 
-    // Set agar ID menggunakan UUID, bukan Auto-Increment
     protected $keyType = 'string';
-
     public $incrementing = false;
 
     protected $fillable = [
@@ -26,18 +24,25 @@ class CrawledData extends Model
         'url',
         'parent_url',
         'raw_payload',
+        'ai_sentiment',
+        'main_topic',
+        'is_emergency',
+        'location',
+        'is_validated',
+        'validated_by',
+        'validated_at',
     ];
 
     protected $casts = [
         'raw_payload' => 'array',
-        'posted_at' => 'datetime',
+        'posted_at'   => 'datetime',
+        'is_emergency' => 'boolean',
+        'is_validated' => 'boolean',
     ];
 
     protected static function boot()
     {
         parent::boot();
-
-        // Otomatis generate UUID saat model dibuat
         static::creating(function ($model) {
             if (empty($model->id)) {
                 $model->id = (string) Str::uuid();
