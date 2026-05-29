@@ -6,12 +6,29 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\CrawledData;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DataController extends Controller
 {
+    private function logActivity(string $event, string $description, $subjectId = null)
+    {
+        DB::table('activity_logs')->insert([
+            'id'           => (string) Str::uuid(),
+            'user_id'      => auth()->id(),
+            'event'        => $event,
+            'description'  => $description,
+            'subject_id'   => $subjectId,
+            'subject_type' => 'CrawledData',
+            'user_ip'      => request()->ip(),
+            'current_hash' => hash('sha256', $event . $description . now()),
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
+    }
+
     public function index()
     {
-        $data = CrawledData::where('is_validated', false)->orderBy('id', 'desc')->paginate(50);
+        $data = CrawledData::where('is_validated', false)->where('created_at', '>=', now()->subDays(7))->orderBy('id', 'desc')->paginate(500);
         return response()->json(['success' => true, 'data' => $data]);
     }
 
@@ -32,13 +49,11 @@ class DataController extends Controller
             'url'       => 'required|string',
         ]);
 
-        // Cek duplikat berdasarkan URL
         $existing = CrawledData::where('url', $request->url)->first();
         if ($existing) {
             return response()->json(['success' => true, 'message' => 'Duplicate', 'data' => $existing], 200);
         }
 
-        // Generate hash otomatis
         $currentHash  = hash('sha256', $request->content . $request->url);
         $lastData     = CrawledData::latest()->first();
         $previousHash = $lastData ? $lastData->current_hash : hash('sha256', 'GENESIS');
@@ -61,15 +76,11 @@ class DataController extends Controller
 
     public function keywords()
     {
-        $filters = DB::table('crawling_filters')
-            ->where('is_active', true)
-            ->get();
+        $filters = DB::table('crawling_filters')->where('is_active', true)->get();
 
-        // Pisahkan berdasarkan tipe keyword (location vs topic)
         $locations = $filters->where('platform', 'location')->pluck('keyword')->toArray();
         $topics    = $filters->where('platform', 'topic')->pluck('keyword')->toArray();
 
-        // Fallback kalau kosong
         if (empty($locations)) {
             $locations = ['semarang', 'jateng', 'solo', 'magelang', 'banyumas', 'klaten', 'demak', 'pati'];
         }
@@ -95,6 +106,7 @@ class DataController extends Controller
             'validated_at' => now()
         ]);
 
+        $this->logActivity('VALIDATE_DATA', 'Data divalidasi: ' . $data->url, $data->id);
         return response()->json(['success' => true, 'message' => 'Data successfully validated', 'data' => $data]);
     }
 
@@ -102,6 +114,7 @@ class DataController extends Controller
     {
         $data = CrawledData::find($id);
         if (!$data) return response()->json(['success' => false, 'message' => 'Data not found'], 404);
+        $this->logActivity('DELETE_DATA', 'Data dihapus: ' . $data->url, $data->id);
         $data->delete();
         return response()->json(['success' => true, 'message' => 'Data deleted successfully']);
     }
